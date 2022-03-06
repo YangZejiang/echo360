@@ -84,8 +84,7 @@ class NaiveM3U8Parser:
     def _extract_properties(lines, idx):
         assert lines[idx].startswith("#")
         tokens = NaiveM3U8Parser._tokenise(NaiveM3U8Parser._remove_prefix(lines[idx]))
-        properties = {}
-        properties["type"] = "video" if "RESOLUTION" in tokens.keys() else "audio"
+        properties = {"type": "video" if "RESOLUTION" in tokens.keys() else "audio"}
         if "URI" in tokens.keys():
             # this is an inlined uri format.
             properties["URI"] = tokens["URI"]
@@ -131,7 +130,6 @@ class NaiveM3U8Parser:
 
     @staticmethod
     def _remove_quotes(string):
-        if len(string) >= 2:
-            if string[0] == '"' and string[-1] == '"':
-                return string[1:-1]
+        if len(string) >= 2 and string[0] == '"' and string[-1] == '"':
+            return string[1:-1]
         return string

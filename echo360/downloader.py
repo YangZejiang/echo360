@@ -49,7 +49,7 @@ class EchoDownloader(object):
         self._useragent = "Mozilla/5.0 (iPad; CPU OS 6_0 like Mac OS X) AppleWebKit/536.26 (KHTML, like Gecko) Version/6.0 Mobile/10A5376e Safari/8536.25"
         # self._driver = webdriver.PhantomJS()
 
-        dcap = dict()
+        dcap = {}
         if use_local_binary:
             if webdriver_to_use == "chrome":
                 from .binary_downloader.chromedriver import ChromedriverDownloader
@@ -112,33 +112,31 @@ class EchoDownloader(object):
         # for example: https://view.streaming.sydney.edu.au:8443/ess/portal/section/ed9b26eb-a785-4f4e-bd51-69f3faab388a
         if self.find_element_by_partial_id("username") is not None:
             self.loginWithCredentials()
+        elif "<html><head></head><body></body></html>" in self._driver.page_source:
+            print("Failed!")
+            print("  > Failed to connect to server, is your internet working...?")
+            _LOGGER.debug("Network seems to be down")
+            _LOGGER.debug(
+                "Dumping page at %s: %s", self._course.url, self._driver.page_source
+            )
+            raise EchoLoginError(self._driver)
+        elif "check your URL" in self._driver.page_source:
+            print("Failed!")
+            print("  > Failed to connet to course page, is the uuid correct...?")
+            _LOGGER.debug("Failed to find a valid course page")
+            _LOGGER.debug(
+                "Dumping page at %s: %s", self._course.url, self._driver.page_source
+            )
+            raise EchoLoginError(self._driver)
         else:
-            # check if it is network error
-            if "<html><head></head><body></body></html>" in self._driver.page_source:
-                print("Failed!")
-                print("  > Failed to connect to server, is your internet working...?")
-                _LOGGER.debug("Network seems to be down")
-                _LOGGER.debug(
-                    "Dumping page at %s: %s", self._course.url, self._driver.page_source
-                )
-                raise EchoLoginError(self._driver)
-            elif "check your URL" in self._driver.page_source:
-                print("Failed!")
-                print("  > Failed to connet to course page, is the uuid correct...?")
-                _LOGGER.debug("Failed to find a valid course page")
-                _LOGGER.debug(
-                    "Dumping page at %s: %s", self._course.url, self._driver.page_source
-                )
-                raise EchoLoginError(self._driver)
-            else:
-                # Should be only for the case where login details is not required left
-                print("INFO: No need to login :)")
-                _LOGGER.debug("No username found (no need to login?)")
-                _LOGGER.debug(
-                    "Dumping login page at %s: %s",
-                    self._course.url,
-                    self._driver.page_source,
-                )
+            # Should be only for the case where login details is not required left
+            print("INFO: No need to login :)")
+            _LOGGER.debug("No username found (no need to login?)")
+            _LOGGER.debug(
+                "Dumping login page at %s: %s",
+                self._course.url,
+                self._driver.page_source,
+            )
         if not isinstance(self._course, EchoCloudCourse):
             # for canvas echo360
             self.retrieve_real_uuid()
@@ -149,18 +147,18 @@ class EchoDownloader(object):
         # retrieve username / password if not given before
         if self._username is None or self._password is None:
             print("Credentials needed...")
-            if self._username is None:
-                if sys.version_info < (3, 0):  # special handling for python2
-                    input = raw_input
-                else:
-                    from builtins import input
-                self._username = input("Unikey: ")
-            if self._password is None:
-                import getpass
+        if self._username is None:
+            if sys.version_info < (3, 0):  # special handling for python2
+                input = raw_input
+            else:
+                from builtins import input
+            self._username = input("Unikey: ")
+        if self._password is None:
+            import getpass
 
-                self._password = getpass.getpass(
-                    "Passowrd for {0}: ".format(self._username)
-                )
+            self._password = getpass.getpass(
+                "Passowrd for {0}: ".format(self._username)
+            )
         # Input username and password:
         # user_name = self._driver.find_element_by_id('j_username')
         user_name = self.find_element_by_partial_id("username")
@@ -255,9 +253,8 @@ class EchoDownloader(object):
                     ">> Skipping Lecture '{0}' as it says it does "
                     "not contain any video.".format(filename)
                 )
-            else:
-                if video.download(self._output_dir, filename):
-                    downloaded_videos.insert(0, filename)
+            elif video.download(self._output_dir, filename):
+                downloaded_videos.insert(0, filename)
         print(self.success_msg(self._course.course_name, downloaded_videos))
         self._driver.close()
 
@@ -283,7 +280,7 @@ class EchoDownloader(object):
 
     def _in_date_range(self, date_string):
         the_date = dateutil.parser.parse(date_string).date()
-        return self._date_range[0] <= the_date and the_date <= self._date_range[1]
+        return self._date_range[0] <= the_date <= self._date_range[1]
 
     def _find_pos(self, videos, the_video):
         # compare by object id, because date could possibly be the same in some case.
