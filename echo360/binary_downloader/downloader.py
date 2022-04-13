@@ -15,20 +15,11 @@ class BinaryDownloader(object):
     def get_os_suffix(self):
         arch = "64" if sys.maxsize > 2 ** 32 else "32"
         if "linux" in sys.platform:
-            if arch == "64":
-                return self._os_linux_64
-            else:
-                return self._os_linux_32
+            return self._os_linux_64 if arch == "64" else self._os_linux_32
         elif "win32" in sys.platform:
-            if arch == "64":
-                return self._os_windows_64
-            else:
-                return self._os_windows_32
+            return self._os_windows_64 if arch == "64" else self._os_windows_32
         elif "darwin" in sys.platform:
-            if arch == "64":
-                return self._os_darwin_64
-            else:
-                return self._os_darwin_32
+            return self._os_darwin_64 if arch == "64" else self._os_darwin_32
         else:
             raise Exception("NON-EXISTING OS VERSION")
 
@@ -61,17 +52,16 @@ class BinaryDownloader(object):
             shutil.unpack_archive(
                 "{0}/{1}".format(bin_path, filename), extract_dir=bin_path
             )
-        else:
-            if ".zip" in filename:
-                import zipfile
+        elif ".zip" in filename:
+            import zipfile
 
-                with zipfile.ZipFile("{0}/{1}".format(bin_path, filename), "r") as zip:
-                    zip.extractall(bin_path)
-            elif ".tar" in filename:
-                import tarfile
+            with zipfile.ZipFile("{0}/{1}".format(bin_path, filename), "r") as zip:
+                zip.extractall(bin_path)
+        elif ".tar" in filename:
+            import tarfile
 
-                with tarfile.open("{0}/{1}".format(bin_path, filename)) as tar:
-                    tar.extractall(path=bin_path)
+            with tarfile.open("{0}/{1}".format(bin_path, filename)) as tar:
+                tar.extractall(path=bin_path)
         # Make the extracted bin executable
         st = os.stat(self.get_bin())
         os.chmod(self.get_bin(), st.st_mode | stat.S_IEXEC)

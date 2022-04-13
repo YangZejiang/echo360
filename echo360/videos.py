@@ -302,7 +302,7 @@ class EchoCloudVideo(EchoVideo):
                 print("Error: Failed to get m3u8 info. Skipping this video")
                 return False
 
-            lines = [n for n in r.content.decode().split("\n")]
+            lines = list(r.content.decode().split("\n"))
             m3u8_video = None
             m3u8_audio = None
 
@@ -332,18 +332,20 @@ class EchoCloudVideo(EchoVideo):
                 audio_file = self._download_url_to_dir(
                     urljoin(single_url, m3u8_audio),
                     output_dir,
-                    filename + "_audio",
+                    f'{filename}_audio',
                     pool_size,
                     convert_to_mp4=False,
                 )
+
             print("  > Downloading video:")
             video_file = self._download_url_to_dir(
                 urljoin(single_url, m3u8_video),
                 output_dir,
-                filename + "_video",
+                f'{filename}_video',
                 pool_size,
                 convert_to_mp4=False,
             )
+
             sys.stdout.write("  > Converting to mp4... ")
             sys.stdout.flush()
 
@@ -351,8 +353,9 @@ class EchoCloudVideo(EchoVideo):
             self.combine_audio_video(
                 audio_file=audio_file,
                 video_file=video_file,
-                final_file=os.path.join(output_dir, filename + ".mp4"),
+                final_file=os.path.join(output_dir, f'{filename}.mp4'),
             )
+
             # remove left-over plain audio/video files.
             if audio_file is not None:
                 os.remove(audio_file)
@@ -365,7 +368,7 @@ class EchoCloudVideo(EchoVideo):
             total_size = int(r.headers.get("content-length", 0))
             block_size = 1024  # 1 kilobyte
             with tqdm.tqdm(total=total_size, unit="iB", unit_scale=True) as pbar:
-                with open(os.path.join(output_dir, filename + ".mp4"), "wb") as f:
+                with open(os.path.join(output_dir, f'{filename}.mp4'), "wb") as f:
                     for data in r.iter_content(block_size):
                         pbar.update(len(data))
                         f.write(data)
@@ -378,8 +381,7 @@ class EchoCloudVideo(EchoVideo):
     def combine_audio_video(audio_file, video_file, final_file):
         if os.path.exists(final_file):
             os.remove(final_file)
-        _inputs = {}
-        _inputs[video_file] = None
+        _inputs = {video_file: None}
         if audio_file is not None:
             _inputs[audio_file] = None
         ff = ffmpy.FFmpeg(
@@ -397,14 +399,12 @@ class EchoCloudVideo(EchoVideo):
             while True:
                 self._driver.get(video_url)
                 try:
-                    # the replace is for reversing the escape by the escapped js in the page source
-                    urls = set(
+                    return set(
                         re.findall(
                             'https://[^,"]*?[.]{}'.format(suffix),
                             self._driver.page_source.replace("\/", "/"),
                         )
                     )
-                    return urls
 
                 except selenium.common.exceptions.TimeoutException:
                     if refresh_attempt >= max_attempts:
@@ -478,7 +478,7 @@ class EchoCloudVideo(EchoVideo):
                 "primaryFiles"
             ]
             urls = [obj["s3Url"] for obj in mp4_files]
-            if len(urls) == 0:
+            if not urls:
                 raise ValueError("Cannot find mp4 urls")
             # usually hd is the last one. so we will sort in reverse order
             return next(reversed(urls))
@@ -538,9 +538,11 @@ class EchoCloudVideo(EchoVideo):
             if video_json["groupInfo"]["u'updatedAt'"] is not None:
                 return video_json["groupInfo"]["u'updatedAt'"]
 
-        if "startTimeUTC" in video_json["lesson"]:
-            if video_json["lesson"]["startTimeUTC"] is not None:
-                return video_json["lesson"]["startTimeUTC"]
+        if (
+            "startTimeUTC" in video_json["lesson"]
+            and video_json["lesson"]["startTimeUTC"] is not None
+        ):
+            return video_json["lesson"]["startTimeUTC"]
         if "createdAt" in video_json["lesson"]["lesson"]:
             return video_json["lesson"]["lesson"]["createdAt"]
 

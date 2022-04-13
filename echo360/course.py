@@ -183,9 +183,9 @@ class EchoCloudCourse(EchoCourse):
                     break
                 except KeyError:
                     pass
-            if self._course_name is None:
-                # no available course name found...?
-                self._course_name = "[[UNTITLED]]"
+        if self._course_name is None:
+            # no available course name found...?
+            self._course_name = "[[UNTITLED]]"
         return self._course_name
 
     @property

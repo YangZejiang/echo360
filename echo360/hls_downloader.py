@@ -80,8 +80,7 @@ class Downloader:
             os.makedirs(self.dir)
         r = self.session.get(m3u8_url, timeout=10)
         if r.ok:
-            body = r.content
-            if body:
+            if body := r.content:
                 # use set to prevent duplicates
                 ts_list = {
                     urljoin(m3u8_url, n.strip())
@@ -110,10 +109,8 @@ class Downloader:
                         ]
                     # re-retrieve to get all ts file list
 
-                ts_list = zip(ts_list, [n for n in range(len(ts_list))])
-                ts_list = list(ts_list)
-
-                if ts_list:
+                ts_list = zip(ts_list, list(range(len(ts_list))))
+                if ts_list := list(ts_list):
                     self.ts_total = len(ts_list)
                     self.ts_current = 0
                     g1 = gevent.spawn(self._join_file)
@@ -224,23 +221,21 @@ class Downloader:
         index = 0
         outfile = ""
         while index < self.ts_total:
-            file_name = self.succed.get(index, "")
-            if file_name:
+            if file_name := self.succed.get(index, ""):
                 if self._result_file_name is None:
                     self._result_file_name = file_name
-                infile = open(os.path.join(self.dir, file_name), "rb")
-                if not outfile:
-                    outfile = open(
-                        os.path.join(
-                            self.dir,
-                            file_name.split(".")[0]
-                            + "_all."
-                            + file_name.split(".")[-1],
-                        ),
-                        "wb",
-                    )
-                outfile.write(infile.read())
-                infile.close()
+                with open(os.path.join(self.dir, file_name), "rb") as infile:
+                    if not outfile:
+                        outfile = open(
+                            os.path.join(
+                                self.dir,
+                                file_name.split(".")[0]
+                                + "_all."
+                                + file_name.split(".")[-1],
+                            ),
+                            "wb",
+                        )
+                    outfile.write(infile.read())
                 os.remove(os.path.join(self.dir, file_name))
                 index += 1
             else:
